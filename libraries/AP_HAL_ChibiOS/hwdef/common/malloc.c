@@ -537,6 +537,7 @@ void* get_addr_mem_region_end_addr(void *addr)
     return 0;
 }
 
+#ifdef USE_POSIX_FATFS
 /*
   alloction functions for newlib
  */
@@ -558,3 +559,4 @@ void __wrap__free_r(void *rptr, void *ptr)
     (void)rptr;
     return free(ptr);
 }
+#endif // USE_POSIX_FATFS

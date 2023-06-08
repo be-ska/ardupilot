@@ -705,6 +705,13 @@ def enable_can(f):
         f.write('#define HAL_CANFD_SUPPORTED %d\n' % canfd_supported)
         env_vars['HAL_CANFD_SUPPORTED'] = canfd_supported
 
+def has_dataflash_spi():
+    '''check for dataflash connected to spi bus'''
+    for dev in spidev:
+        if(dev[0] == 'dataflash'):
+            return True
+    return False
+
 def has_sdcard_spi():
     '''check for sdcard connected to spi bus'''
     for dev in spidev:
@@ -855,13 +862,15 @@ def write_mcu_config(f):
         f.write('#define HAL_STDOUT_BAUDRATE %u\n\n' % get_config('STDOUT_BAUDRATE', type=int))
     if have_type_prefix('SDIO'):
         f.write('// SDIO available, enable POSIX filesystem support\n')
-        f.write('#define USE_POSIX\n\n')
+        f.write('#define USE_POSIX\n')
+        f.write('#define USE_POSIX_FATFS\n\n')
         f.write('#define HAL_USE_SDC TRUE\n')
         build_flags.append('USE_FATFS=yes')
         env_vars['WITH_FATFS'] = "1"
     elif have_type_prefix('SDMMC2'):
         f.write('// SDMMC2 available, enable POSIX filesystem support\n')
-        f.write('#define USE_POSIX\n\n')
+        f.write('#define USE_POSIX\n')
+        f.write('#define USE_POSIX_FATFS\n\n')
         f.write('#define HAL_USE_SDC TRUE\n')
         f.write('#define STM32_SDC_USE_SDMMC2 TRUE\n')
         f.write('#define HAL_USE_SDMMC 1\n')
@@ -869,7 +878,8 @@ def write_mcu_config(f):
         env_vars['WITH_FATFS'] = "1"
     elif have_type_prefix('SDMMC'):
         f.write('// SDMMC available, enable POSIX filesystem support\n')
-        f.write('#define USE_POSIX\n\n')
+        f.write('#define USE_POSIX\n')
+        f.write('#define USE_POSIX_FATFS\n\n')
         f.write('#define HAL_USE_SDC TRUE\n')
         f.write('#define STM32_SDC_USE_SDMMC1 TRUE\n')
         f.write('#define HAL_USE_SDMMC 1\n')
@@ -877,12 +887,21 @@ def write_mcu_config(f):
         env_vars['WITH_FATFS'] = "1"
     elif has_sdcard_spi():
         f.write('// MMC via SPI available, enable POSIX filesystem support\n')
-        f.write('#define USE_POSIX\n\n')
+        f.write('#define USE_POSIX\n')
+        f.write('#define USE_POSIX_FATFS\n\n')
         f.write('#define HAL_USE_MMC_SPI TRUE\n')
         f.write('#define HAL_USE_SDC FALSE\n')
         f.write('#define HAL_SDCARD_SPI_HOOK TRUE\n')
         build_flags.append('USE_FATFS=yes')
         env_vars['WITH_FATFS'] = "1"
+    elif has_dataflash_spi():
+        f.write('// Dataflash memory via SPI available, enable POSIX filesystem support\n')
+        f.write('#define USE_POSIX\n')
+        f.write('#define USE_POSIX_LITTLEFS\n\n')
+        f.write('#define HAL_USE_SDC FALSE\n')
+        build_flags.append('USE_FATFS=no')
+        env_vars['WITH_LITTLEFS'] = "1"
+        env_vars['DISABLE_SCRIPTING'] = True
     else:
         f.write('#define HAL_USE_SDC FALSE\n')
         build_flags.append('USE_FATFS=no')

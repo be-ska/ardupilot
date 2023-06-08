@@ -21,9 +21,12 @@
 static AP_Filesystem fs;
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
-#if HAVE_FILESYSTEM_SUPPORT
+#if HAVE_FILESYSTEM_SUPPORT && HAL_OS_FATFS_IO
 #include "AP_Filesystem_FATFS.h"
 static AP_Filesystem_FATFS fs_local;
+#elif HAVE_FILESYSTEM_SUPPORT && AP_FILESYSTEM_LITTLEFS_ENABLED
+#include "AP_Filesystem_FlashMemory_LittleFS.h"
+static AP_Filesystem_FlashMemory_LittleFS fs_local;
 #else
 static AP_Filesystem_Backend fs_local;
 int errno;
