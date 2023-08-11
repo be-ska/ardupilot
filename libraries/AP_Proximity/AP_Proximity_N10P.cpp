@@ -20,6 +20,8 @@
 #include <AP_Math/crc.h>
 #include <ctype.h>
 #include <stdio.h>
+#include <AP_Common/sorting.h>
+
 #include <GCS_MAVLink/GCS.h>
 
 extern const AP_HAL::HAL& hal;
@@ -65,16 +67,13 @@ bool AP_Proximity_N10P::read_sensor_data()
 
         if (_buffer_count == PACKET_SIZE){
             _buffer_count = 0;
-            // gcs().send_text(MAV_SEVERITY_CRITICAL, "CRC_SUM8 = %d, CRC_N10 = %d, packet = %d", crc_sum8(_buffer, PACKET_SIZE-1), crc8_N10(_buffer, PACKET_SIZE-1), _buffer[PACKET_SIZE-1]);
             //check if message has right CRC and update measure STILL NEED TO DECODE PROTOCOL
             if (crc8_N10(_buffer, PACKET_SIZE-1) == _buffer[PACKET_SIZE-1]){
-                
                 // decode message
                 float angle_start = UINT16_VALUE(_buffer[5],  _buffer[6]) * 0.01f;
                 float angle_stop = UINT16_VALUE(_buffer[105],  _buffer[106]) * 0.01f;
                 float angle_step = (angle_stop - angle_start > 0) ?  (angle_stop - angle_start) / PACKAGE_POINTS : (angle_stop+360 - angle_start) / PACKAGE_POINTS;
                 float angle = angle_start;
-                //gcs().send_text(MAV_SEVERITY_CRITICAL, "Angle start: %2.1f, angle stop: %2.1f", (double)angle_start, (double)angle_stop);
 
                 // Calculate and update distances
                 for (uint8_t i = 7; i < 96; i=i+6) {
@@ -86,7 +85,6 @@ bool AP_Proximity_N10P::read_sensor_data()
                 message_parsed = true;
             } else {
                 // wrong crc
-                //gcs().send_text(MAV_SEVERITY_CRITICAL, "CRC is wrong");
             }
         }
     }
@@ -96,20 +94,46 @@ bool AP_Proximity_N10P::read_sensor_data()
 // process reply
 void AP_Proximity_N10P::update_sector_data(float angle_deg, uint16_t distance_mm)
 {
-    // Get location on 3-D boundary based on angle to the object
-    const AP_Proximity_Boundary_3D::Face face = frontend.boundary.get_face(angle_deg);
-    //check for target too far, target too close and sensor not connected
-    const bool valid = (distance_mm != 0xffff) && (distance_mm > 0x0001);
-    if (valid && !ignore_reading(angle_deg, distance_mm * 0.001f, false)) {
-        frontend.boundary.set_face_attributes(face, angle_deg, distance_mm * 0.001f, state.instance);
-        // update OA database
-        database_push(angle_deg, distance_mm * 0.001f);
-    } else {
-        frontend.boundary.reset_face(face, state.instance);
+    // Median filter every MEDIAN_DEG = 20
+    if (distances_count > DIST_SIZE-1) {
+        distances_count = 0;
     }
-    _last_distance_received_ms = AP_HAL::millis();
-}
+    if (_last_angle_pushed > angle_deg) {
+        _last_angle_pushed -= 360;
+    }
+    distances[distances_count++] = distance_mm;
 
+    // Check if we scanned a MEDIAN_DEG sector and apply IQR (median filter + average)
+    if (angle_deg > _last_angle_pushed + MEDIAN_DEG) {
+        insertion_sort_uint16(distances,distances_count);
+        uint32_t filtered_distance_mm = 0;
+        uint8_t filtered_distance_count = 0;
+        for (uint8_t i = distances_count*0.25; i < distances_count*0.75; i++) {
+            filtered_distance_mm += distances[i];
+            filtered_distance_count++;
+        }
+        filtered_distance_mm /= filtered_distance_count;
+        float angle_deg_average = _last_angle_pushed + (angle_deg-_last_angle_pushed)/2;
+        if (angle_deg_average < 0) {
+            angle_deg_average += 360;
+        }
+        _last_angle_pushed = angle_deg;
+        distances_count = 0;
+
+        // Get location on 3-D boundary based on angle to the object
+        const AP_Proximity_Boundary_3D::Face face = frontend.boundary.get_face(angle_deg_average);
+        //check for target too far, target too close and sensor not connected
+        const bool valid = (filtered_distance_mm < distance_max()*1000) && (filtered_distance_mm > distance_min()*1000);
+        if (valid && !ignore_reading(angle_deg_average, filtered_distance_mm * 0.001f, false)) {
+            frontend.boundary.set_face_attributes(face, angle_deg_average, filtered_distance_mm * 0.001f, state.instance);
+            // update OA database
+            database_push(angle_deg_average, filtered_distance_mm * 0.001f);
+        } else {
+            frontend.boundary.reset_face(face, state.instance);
+        }
+        _last_distance_received_ms = AP_HAL::millis();
+    }
+}
 
 uint8_t AP_Proximity_N10P::crc8_N10(const uint8_t *p, uint8_t len)
 	{
@@ -120,6 +144,5 @@ uint8_t AP_Proximity_N10P::crc8_N10(const uint8_t *p, uint8_t len)
 		uint8_t crc = sum & 0xff;
 		return crc;
 	}
-
 
 #endif // HAL_PROXIMITY_ENABLED
