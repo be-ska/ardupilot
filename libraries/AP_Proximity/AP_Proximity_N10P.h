@@ -9,7 +9,7 @@
 #define PACKET_SIZE                          108
 #define	PACKAGE_POINTS                       16
 #define MEDIAN_DEG                           20
-#define DIST_SIZE                            60
+#define DIST_SIZE                            120
 
 class AP_Proximity_N10P : public AP_Proximity_Backend_Serial {
 
@@ -34,7 +34,6 @@ private:
     // reply related variables
     uint8_t _buffer[PACKET_SIZE]; // buffer where to store data from serial
     uint8_t _buffer_count = 0;
-    float _last_angle_pushed = 0;
     uint16_t distances[DIST_SIZE];
     uint16_t distances_count = 0;
 

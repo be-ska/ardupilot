@@ -98,40 +98,65 @@ void AP_Proximity_N10P::update_sector_data(float angle_deg, uint16_t distance_mm
     if (distances_count > DIST_SIZE-1) {
         distances_count = 0;
     }
-    if (_last_angle_pushed > angle_deg) {
-        _last_angle_pushed -= 360;
+    if (angle_deg > 337.5) {
+        angle_deg -= 360;
     }
-    distances[distances_count++] = distance_mm;
+    uint8_t sector = UINT8_MAX;
 
-    // Check if we scanned a MEDIAN_DEG sector and apply IQR (median filter + average)
-    if (angle_deg > _last_angle_pushed + MEDIAN_DEG) {
+    // understand in which sector we are
+    for (uint8_t i=0; i<8; i++) {
+        if ((angle_deg > -21 + i*45) && (angle_deg < 21 + i*45)) {
+            sector = i;
+        }
+    }
+
+    // static variable for last sector sent
+    static uint8_t last_sector = sector;
+
+    // abort if the angle is in the middle of two sectors
+    if (sector == UINT8_MAX) {
+        return;
+    }
+
+    if (sector == last_sector ) {
+        // update sector distances vector
+        distances[distances_count++] = distance_mm;
+    } else if (sector == last_sector + 1) {
+        // moved to next sector, push the sector distance
         insertion_sort_uint16(distances,distances_count);
         uint32_t filtered_distance_mm = 0;
         uint8_t filtered_distance_count = 0;
-        for (uint8_t i = distances_count*0.25; i < distances_count*0.75; i++) {
+        
+        // Average minimum distances
+        for (uint8_t i = distances_count*0.05; i < distances_count*0.2; i++) {
             filtered_distance_mm += distances[i];
             filtered_distance_count++;
         }
         filtered_distance_mm /= filtered_distance_count;
-        float angle_deg_average = _last_angle_pushed + (angle_deg-_last_angle_pushed)/2;
-        if (angle_deg_average < 0) {
-            angle_deg_average += 360;
-        }
-        _last_angle_pushed = angle_deg;
+        float angle_deg_sector = last_sector * 45.0f;
+
+        // update count variables
         distances_count = 0;
+        distances[distances_count++] = distance_mm;
+        last_sector = sector;
 
         // Get location on 3-D boundary based on angle to the object
-        const AP_Proximity_Boundary_3D::Face face = frontend.boundary.get_face(angle_deg_average);
+        const AP_Proximity_Boundary_3D::Face face = frontend.boundary.get_face(angle_deg_sector);
         //check for target too far, target too close and sensor not connected
         const bool valid = (filtered_distance_mm < distance_max()*1000) && (filtered_distance_mm > distance_min()*1000);
-        if (valid && !ignore_reading(angle_deg_average, filtered_distance_mm * 0.001f, false)) {
-            frontend.boundary.set_face_attributes(face, angle_deg_average, filtered_distance_mm * 0.001f, state.instance);
+        if (valid && !ignore_reading(angle_deg_sector, filtered_distance_mm * 0.001f, false)) {
+            frontend.boundary.set_face_attributes(face, angle_deg_sector, filtered_distance_mm * 0.001f, state.instance);
             // update OA database
-            database_push(angle_deg_average, filtered_distance_mm * 0.001f);
+            database_push(angle_deg_sector, filtered_distance_mm * 0.001f);
         } else {
             frontend.boundary.reset_face(face, state.instance);
         }
         _last_distance_received_ms = AP_HAL::millis();
+    } else {
+        // update count variables
+        distances_count = 0;
+        distances[distances_count++] = distance_mm;
+        last_sector = sector;
     }
 }
 
