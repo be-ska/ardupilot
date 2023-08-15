@@ -126,9 +126,9 @@ void AP_Proximity_N10P::update_sector_data(float angle_deg, uint16_t distance_mm
         insertion_sort_uint16(distances,distances_count);
         uint32_t filtered_distance_mm = 0;
         uint8_t filtered_distance_count = 0;
-        
+
         // Average minimum distances
-        for (uint8_t i = distances_count*0.05; i < distances_count*0.2; i++) {
+        for (uint8_t i = 0; i < distances_count*0.2; i++) {
             filtered_distance_mm += distances[i];
             filtered_distance_count++;
         }
