@@ -11,9 +11,16 @@
 // the following line is parsed by the autotest scripts
 #define FIRMWARE_VERSION 4,3,7,FIRMWARE_VERSION_TYPE_OFFICIAL
 
+// ArduPilot version
 #define FW_MAJOR 4
 #define FW_MINOR 3
 #define FW_PATCH 7
 #define FW_TYPE FIRMWARE_VERSION_TYPE_OFFICIAL
+
+// Align version 
+#define MIDDLE_MAJOR 0
+#define MIDDLE_MINOR 1
+#define MIDDLE_PATCH 5
+#define MIDDLE_TYPE FIRMWARE_VERSION_TYPE_DEV
 
 #include <AP_Common/AP_FWVersionDefine.h>
