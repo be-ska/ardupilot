@@ -58,10 +58,10 @@ PA6 SPI6_MISO SPI6
 PA7 SPI6_MOSI SPI6
 
 # sensor CS
-PA15  IMU1_CS   CS
+PA15 IMU3_CS   CS
 PE5 IMU2_CS   CS
-PD3 IMU3_CS   CS
-PA4  BARO1_CS  CS
+PD3 IMU1_CS   CS
+PA4 BARO1_CS  CS
 
 # define the order that I2C buses 
 I2C_ORDER I2C2 I2C1
@@ -132,9 +132,7 @@ PB12 CAN2_RX CAN2
 PB13 CAN2_TX CAN2
 
 # SPI devices
-#SPIDEV imu1           SPI1 DEVID1  IMU1_CS      MODE3   2*MHZ    8*MHZ
-#SPIDEV imu2           SPI1 DEVID2  IMU2_CS      MODE3   2*MHZ    8*MHZ
-SPIDEV imu3           SPI1 DEVID3  IMU3_CS      MODE3   2*MHZ    8*MHZ
+SPIDEV imu1           SPI1 DEVID1  IMU1_CS      MODE3   2*MHZ    8*MHZ
 SPIDEV baro1          SPI6 DEVID2  BARO1_CS     MODE3   5*MHZ    5*MHZ
 
 # microSD support
@@ -145,12 +143,8 @@ PC9 SDMMC1_D1 SDMMC1
 PC10 SDMMC1_D2 SDMMC1
 PC11  SDMMC1_D3 SDMMC1
 
-# AP3 just IMU3, AP4 3 IMUs
-# IMU Invensense   SPI:imu1      ROTATION_NONE
-# IMU Invensensev3 SPI:imu1      ROTATION_ROLL_180
-# IMU Invensense   SPI:imu2      ROTATION_ROLL_180
-# IMU Invensensev3 SPI:imu2      ROTATION_YAW_270
-IMU Invensensev3 SPI:imu3      ROTATION_ROLL_180_YAW_90
+# AP3 just IMU1
+IMU Invensensev3 SPI:imu1      ROTATION_ROLL_180_YAW_90
 
 # one Baro sensor
 BARO MS56XX SPI:baro1
