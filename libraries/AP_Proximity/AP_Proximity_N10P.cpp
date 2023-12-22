@@ -125,21 +125,15 @@ void AP_Proximity_N10P::update_sector_data(float angle_deg, uint16_t distance_mm
     } else if ((sector == last_sector + 1) || ((sector == 0) && (last_sector == 7))) {
         // moved to next sector, push the sector distance
         insertion_sort_uint16(distances,distances_count);
-        uint32_t filtered_distance_mm = 0;
-        uint8_t filtered_distance_count = 0;
-
-        // Average minimum distances: we should have a measure every 0.4-0.8 deg, so average the 5 minimum distances to consider a 2-4 deg FOV
-        uint8_t min_dist_count = distances_count > 5 ? 5 : distances_count;
-        for (uint8_t i = 0; i < min_dist_count; i++) {
-            filtered_distance_mm += distances[i];
-            filtered_distance_count++;
-        }
-        filtered_distance_mm /= filtered_distance_count;
+        
+        //Just consider the shortest distance (skip the 3 shortest distance for filtering)
+        uint8_t min_dist_count = distances_count > 2 ? 3 : 0;
+        uint32_t filtered_distance_mm = distances[min_dist_count];
         float angle_deg_sector = last_sector * 45.0f;
 
         // update count variables
         distances_count = 0;
-        distances[distances_count++] = distance_mm;
+        distances[distances_count++] = distance_mm; // do not skip the distance that get me here
         last_sector = sector;
 
         // Get location on 3-D boundary based on angle to the object
