@@ -22,8 +22,6 @@
 #include <stdio.h>
 #include <AP_Common/sorting.h>
 
-#include <GCS_MAVLink/GCS.h>
-
 extern const AP_HAL::HAL& hal;
 
 // update the state of the sensor
@@ -97,8 +95,9 @@ void AP_Proximity_N10P::update_sector_data(float angle_deg, uint16_t distance_mm
     // Reach array size, alert and prevent array out of range
     if (distances_count > DIST_SIZE-1) {
         distances_count = 0;
-        GCS_SEND_TEXT(MAV_SEVERITY_EMERGENCY,"Proximity: distances array reached its maximum size");
     }
+
+    // convert angles from [0 360] to [-22.5 337.5]
     if (angle_deg > 337.5) {
         angle_deg -= 360;
     }
@@ -111,13 +110,13 @@ void AP_Proximity_N10P::update_sector_data(float angle_deg, uint16_t distance_mm
         }
     }
 
-    // static variable for last sector sent
-    static uint8_t last_sector = sector;
-
     // abort if the angle is in the middle of two sectors
     if (sector == UINT8_MAX) {
         return;
     }
+
+    // static variable for last sector sent
+    static uint8_t last_sector = sector;
 
     if (sector == last_sector ) {
         // update sector distances vector
@@ -127,7 +126,7 @@ void AP_Proximity_N10P::update_sector_data(float angle_deg, uint16_t distance_mm
         insertion_sort_uint16(distances,distances_count);
         
         //Just consider the shortest distance (skip the 3 shortest distance for filtering)
-        uint8_t min_dist_count = distances_count > 2 ? 3 : 0;
+        uint8_t min_dist_count = distances_count > 3 ? 3 : 0;
         uint32_t filtered_distance_mm = distances[min_dist_count];
         float angle_deg_sector = last_sector * 45.0f;
 
@@ -149,8 +148,7 @@ void AP_Proximity_N10P::update_sector_data(float angle_deg, uint16_t distance_mm
         }
         _last_distance_received_ms = AP_HAL::millis();
     } else {
-        // it should never arrive here, but just in case reset count variables
-        GCS_SEND_TEXT(MAV_SEVERITY_EMERGENCY,"Proximity: else reached");
+        // if the rotation is too slow (skip one sector) reset data
         distances_count = 0;
         distances[distances_count++] = distance_mm;
         last_sector = sector;
