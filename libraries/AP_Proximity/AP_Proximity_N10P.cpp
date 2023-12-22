@@ -94,9 +94,10 @@ bool AP_Proximity_N10P::read_sensor_data()
 // process reply
 void AP_Proximity_N10P::update_sector_data(float angle_deg, uint16_t distance_mm)
 {
-    // Median filter every MEDIAN_DEG = 20
+    // Reach array size, alert and prevent array out of range
     if (distances_count > DIST_SIZE-1) {
         distances_count = 0;
+        GCS_SEND_TEXT(MAV_SEVERITY_EMERGENCY,"Proximity: distances array reached its maximum size");
     }
     if (angle_deg > 337.5) {
         angle_deg -= 360;
@@ -105,7 +106,7 @@ void AP_Proximity_N10P::update_sector_data(float angle_deg, uint16_t distance_mm
 
     // understand in which sector we are
     for (uint8_t i=0; i<8; i++) {
-        if ((angle_deg > -21 + i*45) && (angle_deg < 21 + i*45)) {
+        if ((angle_deg > -22 + i*45) && (angle_deg < 22 + i*45)) {
             sector = i;
         }
     }
@@ -127,8 +128,9 @@ void AP_Proximity_N10P::update_sector_data(float angle_deg, uint16_t distance_mm
         uint32_t filtered_distance_mm = 0;
         uint8_t filtered_distance_count = 0;
 
-        // Average minimum distances
-        for (uint8_t i = 0; i < distances_count*0.2; i++) {
+        // Average minimum distances: we should have a measure every 0.4-0.8 deg, so average the 5 minimum distances to consider a 2-4 deg FOV
+        uint8_t min_dist_count = distances_count > 5 ? 5 : distances_count;
+        for (uint8_t i = 0; i < min_dist_count; i++) {
             filtered_distance_mm += distances[i];
             filtered_distance_count++;
         }
@@ -153,7 +155,8 @@ void AP_Proximity_N10P::update_sector_data(float angle_deg, uint16_t distance_mm
         }
         _last_distance_received_ms = AP_HAL::millis();
     } else {
-        // update count variables
+        // it should never arrive here, but just in case reset count variables
+        GCS_SEND_TEXT(MAV_SEVERITY_EMERGENCY,"Proximity: else reached");
         distances_count = 0;
         distances[distances_count++] = distance_mm;
         last_sector = sector;
