@@ -1551,10 +1551,12 @@ void AP_BLHeli::update_telemetry(void)
 #ifdef HAL_WITH_BIDIR_DSHOT
     // we might only have bi-dir dshot
     if (channel_bidir_dshot_mask.get() != 0 && !telem_uart) {
+        debug("BDShot is selected, no telem UART");
         log_bidir_telemetry();
     }
 #endif
     if (!telem_uart || !SRV_Channels::have_digital_outputs()) {
+        debug("No telemetry UART or no digital outputs");
         return;
     }
     uint32_t now = AP_HAL::micros();
@@ -1570,6 +1572,17 @@ void AP_BLHeli::update_telemetry(void)
     }
 
     uint32_t nbytes = telem_uart->available();
+
+    // print debug stats
+    static uint32_t last_us = now;
+    static uint32_t nbytes_tot = 0;
+    nbytes_tot += nbytes;
+    if (now - last_us > 5000000)
+    {
+        debug("rx bytes in last five seconds = %u", (unsigned)nbytes_tot);
+        nbytes_tot = 0;
+        last_us = now;
+    }
 
     if (nbytes > telem_packet_size) {
         // if we have more than 10 bytes then we don't know which ESC
