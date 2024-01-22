@@ -1437,10 +1437,12 @@ void AP_BLHeli::init(uint32_t mask, AP_HAL::RCOutput::output_mode otype)
  */
 void AP_BLHeli::read_telemetry_packet(void)
 {
+    debug("Call telemetry functions at %u", (unsigned)AP_HAL::millis());
 #if HAL_WITH_ESC_TELEM
     uint8_t buf[telem_packet_size];
     if (telem_uart->read(buf, telem_packet_size) < telem_packet_size) {
         // short read, we should have 10 bytes ready when this function is called
+        debug("Read returned less than 10 bytes, exiting");
         return;
     }
 
@@ -1468,6 +1470,13 @@ void AP_BLHeli::read_telemetry_packet(void)
         .current = float(uint16_t((buf[3]<<8) | buf[4])) * 0.01,
         .consumption_mah = float(uint16_t((buf[5]<<8) | buf[6])),
     };
+
+    debug("ESC[%u] T=%u V=%f C=%f con=%f",
+                            last_telem_esc,
+                            t.temperature_cdeg,
+                            t.voltage,
+                            t.current,
+                            t.consumption_mah);
 
     update_telem_data(motor_idx - chan_offset, t,
         AP_ESC_Telem_Backend::TelemetryType::CURRENT
@@ -1565,6 +1574,7 @@ void AP_BLHeli::update_telemetry(void)
     if (nbytes > telem_packet_size) {
         // if we have more than 10 bytes then we don't know which ESC
         // they are from. Throw them all away
+        debug("nbytes = %u > 10, discard input", (unsigned)nbytes);
         telem_uart->discard_input();
         return;
     }
@@ -1580,6 +1590,7 @@ void AP_BLHeli::update_telemetry(void)
     }
     if (nbytes > 0 && nbytes < telem_packet_size) {
         // we've waited long enough, discard bytes if we don't have 10 yet
+        debug("nbytes = %u < 10 after timeout, discard input", (unsigned)nbytes);
         telem_uart->discard_input();
         return;
     }
