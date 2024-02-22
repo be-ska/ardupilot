@@ -55,9 +55,13 @@ extern const AP_HAL::HAL& hal;
 #define W25N01G_NUM_BLOCKS                  1024
 
 #define JEDEC_ID_WINBOND_W25N01GV      0xEFAA21
+#define JEDEC_ID_WINBOND_W25N01KV      0xEFAE21
 
 void AP_Logger_W25N01GV::Init()
 {
+    hal.scheduler->delay(5000);
+    printf("W25N01GV init");
+
     dev = hal.spi->get_device("dataflash");
     if (!dev) {
         AP_HAL::panic("PANIC: AP_Logger W25N01GV device not found");
@@ -87,7 +91,7 @@ void AP_Logger_W25N01GV::Init()
     // enable ECC and buffer mode
     WriteStatusReg(W25N01G_CONF_REG, W25N01G_CONFIG_ECC_ENABLE|W25N01G_CONFIG_BUFFER_READ_MODE);
 
-    printf("W25N01GV status: SR-1=0x%x, SR-2=0x%x, SR-3=0x%x\n",
+    DEV_PRINTF("W25N01GV status: SR-1=0x%x, SR-2=0x%x, SR-3=0x%x\n",
         ReadStatusRegBits(W25N01G_PROT_REG),
         ReadStatusRegBits(W25N01G_CONF_REG),
         ReadStatusRegBits(W25N01G_STATUS_REG));
@@ -108,7 +112,7 @@ void AP_Logger_W25N01GV::WaitReady()
     while (Busy()) {
         hal.scheduler->delay_microseconds(100);
         if (AP_HAL::millis() - t > 5000) {
-            printf("DataFlash: flash_died\n");
+            DEV_PRINTF("DataFlash: flash_died\n");
             flash_died = true;
             break;
         }
@@ -135,15 +139,21 @@ bool AP_Logger_W25N01GV::getSectorCount(void)
         df_PagePerSector = 64; // make sectors equivalent to block
         break;
 
+    case JEDEC_ID_WINBOND_W25N01KV:
+        df_PageSize = 2048;
+        df_PagePerBlock = 64;
+        df_PagePerSector = 64; // make sectors equivalent to block
+        break;
+
     default:
         hal.scheduler->delay(2000);
-        printf("Unknown SPI Flash 0x%08x\n", id);
+        DEV_PRINTF("Unknown SPI Flash 0x%08lx\n", id);
         return false;
     }
 
     df_NumPages = W25N01G_NUM_BLOCKS * df_PagePerBlock;
 
-    printf("SPI Flash 0x%08x found pages=%u\n", id, df_NumPages);
+    DEV_PRINTF("SPI Flash 0x%08lx found pages=%lu\n", id, df_NumPages);
     return true;
 }
 
@@ -170,10 +180,10 @@ bool AP_Logger_W25N01GV::Busy()
     uint8_t status = ReadStatusRegBits(W25N01G_STATUS_REG);
 
     if ((status & W25N01G_STATUS_PFAIL) != 0) {
-        printf("Program failure!\n");
+        DEV_PRINTF("Program failure!\n");
     }
     if ((status & W25N01G_STATUS_EFAIL) != 0) {
-        printf("Erase failure!\n");
+        DEV_PRINTF("Erase failure!\n");
     }
 
     return (status & JEDEC_STATUS_BUSY) != 0;
@@ -196,7 +206,7 @@ void AP_Logger_W25N01GV::send_command_addr(uint8_t command, uint32_t PageAdr)
 void AP_Logger_W25N01GV::PageToBuffer(uint32_t pageNum)
 {
     if (pageNum == 0 || pageNum > df_NumPages+1) {
-        printf("Invalid page read %u\n", pageNum);
+        DEV_PRINTF("Invalid page read %lu\n", pageNum);
         memset(buffer, 0xFF, df_PageSize);
         df_Read_PageAdr = pageNum;
         return;
@@ -240,7 +250,7 @@ void AP_Logger_W25N01GV::PageToBuffer(uint32_t pageNum)
 void AP_Logger_W25N01GV::BufferToPage(uint32_t pageNum)
 {
     if (pageNum == 0 || pageNum > df_NumPages+1) {
-        printf("Invalid page write %u\n", pageNum);
+        DEV_PRINTF("Invalid page write %lu\n", pageNum);
         return;
     }
 
@@ -306,7 +316,7 @@ void AP_Logger_W25N01GV::StartErase()
 
     erase_block = 1;
     erase_start_ms = AP_HAL::millis();
-    printf("Dataflash: erase started\n");
+    DEV_PRINTF("Dataflash: erase started\n");
 }
 
 bool AP_Logger_W25N01GV::InErase()
@@ -315,7 +325,7 @@ bool AP_Logger_W25N01GV::InErase()
         if (erase_block < W25N01G_NUM_BLOCKS) {
             SectorErase(erase_block++);
         } else {
-            printf("Dataflash: erase done (%u ms)\n", AP_HAL::millis() - erase_start_ms);
+            DEV_PRINTF("Dataflash: erase done (%lu ms)\n", AP_HAL::millis() - erase_start_ms);
             erase_start_ms = 0;
             erase_block = 0;
         }
