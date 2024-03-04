@@ -8,7 +8,7 @@ MCU STM32H7xx STM32H743xx
 OSCILLATOR_HZ 24000000
 
 # board ID for firmware load
-APJ_BOARD_ID 150 # AP_HW_ALIGN_AP3 TODO: change after PR to ArduPilot
+APJ_BOARD_ID 151 # AP_HW_ALIGN_AP6 TODO: change after PR to ArduPilot
 
 FLASH_SIZE_KB 2048
 
