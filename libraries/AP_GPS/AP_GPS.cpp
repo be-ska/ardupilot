@@ -2046,14 +2046,14 @@ void AP_GPS::calc_blended_state(void)
 }
 #endif // GPS_BLENDED_INSTANCE
 
-bool AP_GPS::is_healthy(uint8_t instance) const
+uint8_t AP_GPS::is_healthy(uint8_t instance) const
 {
     if (instance >= GPS_MAX_INSTANCES) {
-        return false;
+        return 1;
     }
 
     if (get_type(_primary.get()) == GPS_TYPE_NONE) {
-        return false;
+        return 2;
     }
 
 #ifdef HAL_BUILD_AP_PERIPH
@@ -2072,18 +2072,25 @@ bool AP_GPS::is_healthy(uint8_t instance) const
     const uint8_t delay_threshold = 2;
     const float delay_avg_max = ((_type[instance] == GPS_TYPE_UBLOX_RTK_ROVER) || (_type[instance] == GPS_TYPE_UAVCAN_RTK_ROVER))?245:215;
     const GPS_timing &t = timing[instance];
-    bool delay_ok = (t.delayed_count < delay_threshold) &&
-        t.average_delta_ms < delay_avg_max &&
-        state[instance].lagged_sample_count < 5;
+    if (t.delayed_count > delay_threshold)
+        return 3;
+    if (t.average_delta_ms > delay_avg_max)
+        return 4;
+    if (state[instance].lagged_sample_count < 5)
+        return 5;
 
 #if defined(GPS_BLENDED_INSTANCE)
-    if (instance == GPS_BLENDED_INSTANCE) {
-        return delay_ok && blend_health_check();
+    if (instance == GPS_BLENDED_INSTANCE && !blend_health_check()) {
+        return 8;
     }
 #endif
 
-    return delay_ok && drivers[instance] != nullptr &&
-           drivers[instance]->is_healthy();
+    if (drivers[instance] == nullptr)
+        return 6;
+    if (!drivers[instance]->is_healthy())
+        return 7;
+
+    return 0;
 #endif // HAL_BUILD_AP_PERIPH
 }
 

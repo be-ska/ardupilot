@@ -596,8 +596,9 @@ bool AP_Arming::gps_checks(bool report)
             }
 
             //GPS update rate acceptable
-            if (!gps.is_healthy(i)) {
-                check_failed(ARMING_CHECK_GPS, report, "GPS %i: not healthy", i+1);
+            uint8_t err = gps.is_healthy(i);
+            if (err != 0) {
+                check_failed(ARMING_CHECK_GPS, report, "GPS %i: not healthy, error: %i", i+1, err);
                 return false;
             }
         }
