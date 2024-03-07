@@ -2076,7 +2076,7 @@ uint8_t AP_GPS::is_healthy(uint8_t instance) const
         return 3;
     if (t.average_delta_ms > delay_avg_max)
         return 4;
-    if (state[instance].lagged_sample_count < 5)
+    if (state[instance].lagged_sample_count > 5)
         return 5;
 
 #if defined(GPS_BLENDED_INSTANCE)
