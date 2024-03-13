@@ -1,3 +1,4 @@
+-- version 1.0
 local INIT_MILLIS = 3000
 local UART_BAUD = uint32_t(115200)
 local OUT_OF_RANGE_HIGH = 20
@@ -31,12 +32,12 @@ function init_rng()
         lua_rfnd_backend = rangefinder:get_backend(INSTANCE)
         if lua_rfnd_backend == nil then
             gcs:send_text(MAV_SEVERITY.ERROR, string.format("RFND: Configure RNGFND%d_TYPE = %d", INSTANCE+1, PARAM_LUA_RFND))
-            return init_rng, INIT_MILLIS
+            return
         end
 
         if lua_rfnd_backend:type() ~= PARAM_LUA_RFND then
-            gcs:send_text(MAV_SEVERITY.ERROR,"RFND: Configure RNGFND1_TYPE = " .. PARAM_LUA_RFND)
-            return init_rng, INIT_MILLIS
+            gcs:send_text(MAV_SEVERITY.ERROR, string.format("RFND: Configure RNGFND%d_TYPE = %d", INSTANCE+1, PARAM_LUA_RFND))
+            return
         end
 
         uart = serial:find_serial(INSTANCE)
