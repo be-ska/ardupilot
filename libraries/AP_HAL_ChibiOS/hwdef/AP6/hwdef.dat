@@ -1,10 +1,19 @@
 # hw definition file for processing by chibios_hwdef.py
 # for AP6 hardware
 
+# define AP6 frames
+define ALIGN_M460_DEV   0x02010000
+define ALIGN_M460       0x02010001
+define ALIGN_M460_G3P   0x02010101
+define ALIGN_M490_DEV   0x02020000
+define ALIGN_M490       0x02020001
+define ALIGN_M6T22_DEV  0x02030000
+define ALIGN_M6T22      0x02030001
+
 # USB setup (future use)
-#USB_VENDOR 0x2A58 # ALIGN Corporation Limited
-#USB_PRODUCT 0xA001
-#USB_STRING_MANUFACTURER "ALIGN"
+USB_VENDOR 0x2A58 # ALIGN Corporation Limited
+USB_PRODUCT 0xA002 # AP6
+USB_STRING_MANUFACTURER "ALIGN"
 
 # MCU class and specific type
 MCU STM32H7xx STM32H743xx
@@ -77,15 +86,18 @@ PD7 ICM42688_INT1 INPUT
 PD4 ICM42688_INT2 INPUT
 
 # define the order that I2C buses 
-I2C_ORDER I2C2 I2C1
+I2C_ORDER I2C1 I2C2
 
-# I2C1 is on GPS1 port
+# I2C2 is on GPS2 port and I2C connector
 PB10 I2C2_SCL I2C2
 PB11 I2C2_SDA I2C2
 
-# I2C2 is on GPS2 port and I2C connector
+# I2C1 is on GPS1 port
 PB6 I2C1_SCL I2C1
 PB9 I2C1_SDA I2C1
+
+# All I2C are external
+define HAL_I2C_INTERNAL_MASK 0
 
 # define UARTs
 
