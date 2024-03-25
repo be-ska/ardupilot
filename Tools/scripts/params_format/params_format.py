@@ -7,6 +7,9 @@ import re
 import sys
 import os
 
+line_to_delete = ["BARO1", "BARO2", "BARO3", "COMPASS_DEV", "COMPASS_DIA", "COMPASS_MOT", "COMPASS_ODI", "COMPASS_OFS", "COMPASS_PRIO", "COMPASS_SCALE", "INS_ACC", "INS_GYR1", "INS_GYR2", "INS_GYR3", "INS_GYROFF"]
+
+
 def transform_line(line):
     # Use regular expressions to match the desired pattern
     match = re.match(r'^\s*([^,\s]+)\s*([-+]?\d*\.?\d+)\s*$', line)
@@ -31,8 +34,15 @@ def transform_line(line):
 def transform_file(input_file, output_file):
     with open(input_file, 'r') as infile, open(output_file, 'w') as outfile:
         for line in infile:
-            transformed_line = transform_line(line)
-            outfile.write(transformed_line + '\n')
+            # Iterate over each substring and check if it appears in the line
+            skip = False
+            for substring in line_to_delete:
+                if substring in line:
+                    skip = True
+                    break
+            if not skip:
+                transformed_line = transform_line(line)
+                outfile.write(transformed_line + '\n')
 
 def generate_output_filename(input_filename):
     base_name, extension = os.path.splitext(input_filename)
