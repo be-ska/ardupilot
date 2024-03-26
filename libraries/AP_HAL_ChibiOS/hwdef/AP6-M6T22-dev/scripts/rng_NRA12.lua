@@ -1,4 +1,4 @@
--- Driver for Custom Serial Rangefinder (NRA12) - version 1.1
+-- Driver for Custom Serial Rangefinder (NRA12) - version 1.2
 local UART_BAUD = uint32_t(115200)
 local OUT_OF_RANGE_HIGH = 20
 local INSTANCE = 0
@@ -24,6 +24,8 @@ local distance_received = false
 local uart = nil
 local report_ms = uint32_t(0)
 local report_count = 0
+local avoid_count = 0
+local last_dist_cm = 0
 function init_rng()
 lua_rfnd_backend = rangefinder:get_backend(INSTANCE)
 if lua_rfnd_backend == nil then
@@ -110,6 +112,25 @@ if not sent_successfully then
 gcs:send_text(MAV_SEVERITY.EMERGENCY, string.format("RFND: Lua Script Error"))
 end
 end
+function check_auto()
+if vehicle:get_mode() ~= 3 then
+return
+end
+if ahrs:groundspeed_vector():length() <= 1 then
+return
+end
+if distance < 1000 and distance <= last_dist_cm then
+avoid_count = avoid_count + 1
+else
+avoid_count = 0
+end
+last_dist_cm = distance
+if avoid_count >= 2 then
+vehicle:set_mode(5)
+gcs:send_text(2, string.format("Obstacle detected at %d cm, switch to Loiter", distance))
+avoid_count = 0
+end
+end
 function update()
 local now = millis()
 read_incoming_bytes()
@@ -117,6 +138,7 @@ if distance_received then
 report_count = report_count +1
 send_distance(distance/100)
 distance_received = false
+check_auto()
 else
 send_distance(OUT_OF_RANGE_HIGH)
 end
