@@ -26,7 +26,11 @@ def transform_line(line):
 
         # Combine the matched parts into the desired format
         transformed_line = f"{non_numeric_part}, {numeric_part}"
-        return transformed_line
+
+        # remove spaces
+        no_space_line = transformed_line.replace(' ', '')
+
+        return no_space_line
     else:
         # If the line doesn't match the expected pattern, return it as is
         return line.strip()
