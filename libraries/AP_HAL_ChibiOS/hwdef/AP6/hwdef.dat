@@ -9,6 +9,10 @@ define ALIGN_M490_DEV   0x02020000
 define ALIGN_M490       0x02020001
 define ALIGN_M6T22_DEV  0x02030000
 define ALIGN_M6T22      0x02030001
+define ALIGN_M4T12_DEV  0x02040000
+define ALIGN_M4T12      0x02040001
+define ALIGN_M4T12_RTK  0x02040002
+
 
 # USB setup (future use)
 USB_VENDOR 0x2A58 # ALIGN Corporation Limited
